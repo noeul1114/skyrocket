@@ -9,4 +9,6 @@ RUN git clone https://github.com/noeul1114/skyrocket.git
 
 RUN cd /home/skyrocket
 
+RUN pip install -r requirements.txt
+
 EXPOSE 8000
