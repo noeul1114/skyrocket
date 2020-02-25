@@ -10,11 +10,11 @@ secret_list = dict()
 all_secret_file = os.listdir(secret_root)
 
 for secret in all_secret_file:
-    file = open(os.path.join(secret_root, secret))
+    file = open(os.path.join(secret_root, secret), "r")
     secret_list[secret] = file.read().lstrip().rstrip()
     file.close()
 
-SECRET_KEY = secret_list['SECRET_KEY']
+SECRET_KEY = secret_list['DJANGO_SECRET_KEY']
 
 DATABASES = {
     'default': {
