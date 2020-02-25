@@ -7,7 +7,7 @@ RUN cd /home
 
 RUN git clone https://github.com/noeul1114/skyrocket.git
 
-RUN cd /home/skyrocket/
+WORKDIR /home/skyrocket/
 
 RUN pip install -r requirements.txt
 
