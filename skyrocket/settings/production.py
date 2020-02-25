@@ -22,7 +22,7 @@ DATABASES = {
         'NAME': secret_list['MYSQL_DATABASE'],
         'USER': secret_list['MYSQL_USER'],
         'PASSWORD': secret_list['MYSQL_PASSWORD'],
-        'HOST': secret_list['MYSQL_HOST'],
+        'HOST': 'mariadb',
         'PORT': '3306',
     }
 }
