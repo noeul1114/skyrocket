@@ -4,7 +4,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
-secret_root = '/run/secret/'
+secret_root = '/run/secrets/'
 
 secret_list = dict()
 all_secret_file = os.listdir(secret_root)
