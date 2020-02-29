@@ -4,7 +4,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-SECRET_KEY = open( os.path.join(BASE_DIR,"env")).read().rstrip().lstrip()
+SECRET_KEY = open(os.path.join(BASE_DIR, "env")).read().rstrip().lstrip()
 
 DATABASES = {
     'default': {
