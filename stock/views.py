@@ -6,4 +6,4 @@ from django.shortcuts import HttpResponse
 
 
 def initial_test_page(request):
-    return HttpResponse("Testing succeeded!")
+    return HttpResponse("Testing succeeded!!!!")
