@@ -45,106 +45,131 @@ BASE_DIR = settings.BASE_DIR
 
 
 class RawDataManager:
+    def __init__(self, **path):
+        self.driver = None
+        self.soup = None
 
-    def get_chromedriver(self, **path):
+        self.url_list = None
 
+    def set_chromedriver(self, **path):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         if path:
             driver_path = path
         else:
             driver_path = os.path.join(BASE_DIR, "chromedriver.exe")
-        driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)
-        return driver
 
-def index_view_page_xbrl(request):
+        self.driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)
+
+    def set_base_url(self, base_url):
+        self.driver.get(base_url)
+        print(self.driver.page_source)
+        self.soup = bs(self.driver.page_source, 'html.parser')
+        self.soup = self.soup.find('table', class_="list")
+
+    def set_total_list(self):
+        total_list_tr = self.soup.find_all("tr")
+        total_list = [deque(), deque(), deque(), deque()]
+
+        for row in total_list_tr[1:]:
+            table_datas = row.find_all("td")
+
+            BS = table_datas[3]  # 재무상태표 : BS  (Balance Sheet)
+            PL = table_datas[4]  # 손익계산서 : PL  (Profit & Loss)
+            CF = table_datas[5]  # 현금흐름표 : CF  (Cash Flow)
+            CE = table_datas[6]  # 자본변동표 : CE  (Changes in Equity)
+
+            total_list[0].append(BS.find("a")['onclick'].split('\'')[7])
+            total_list[1].append(PL.find("a")['onclick'].split('\'')[7])
+            total_list[2].append(CF.find("a")['onclick'].split('\'')[7])
+            total_list[3].append(CE.find("a")['onclick'].split('\'')[7])
+
+        self.url_list = total_list
+        print('안녕')
+        print(self.url_list)
+
+    def set_total_list_opendart(self):
+        total_list_tr = self.soup.find_all("tr")
+        total_list = [deque(), deque(), deque(), deque()]
+
+        for row in total_list_tr[1:]:
+            table_datas = row.find_all("tb01")
+
+            BS = table_datas[3]  # 재무상태표 : BS  (Balance Sheet)
+            PL = table_datas[4]  # 손익계산서 : PL  (Profit & Loss)
+            CF = table_datas[5]  # 현금흐름표 : CF  (Cash Flow)
+            CE = table_datas[6]  # 자본변동표 : CE  (Changes in Equity)
+
+            total_list[0].append(BS.find("a")['onclick'].split('\'')[7])
+            total_list[1].append(PL.find("a")['onclick'].split('\'')[7])
+            total_list[2].append(CE.find("a")['onclick'].split('\'')[7])
+            total_list[3].append(CF.find("a")['onclick'].split('\'')[7])
+
+        self.url_list = total_list
+
+    def download_extract(self, base_dir):
+        length = len(self.url_list[0])
+
+        for x in range(4):
+            for y in range(length):
+                url = self.url_list[x].pop()
+
+                # URL of the image to be downloaded is defined as image_url
+                r = requests.get(url)  # create HTTP response object
+
+                # send a HTTP request to the server and save
+                # the HTTP response in a response object called r
+                temp_path = os.path.join(base_dir, 'Download', 'temp.zip')
+                with open(temp_path, 'wb') as f:
+                    # Saving received content as a png file in
+                    # binary format
+
+                    # write the contents of the response (r.content)
+                    # to a new file in binary mode.
+                    f.write(r.content)
+
+                with zipfile.ZipFile(temp_path, 'r') as zip_ref:
+                    # Get a list of all archived file names from the zip
+                    listOfFileNames = zip_ref.namelist()
+                    # Iterate over the file names
+                    for fileName in listOfFileNames:
+                        # Check filename endswith csv
+                        if fileName.endswith('.txt'):
+                            # Extract a single file from zip
+                            zip_ref.extract(fileName, path=os.path.join(base_dir, "Download"))
+
+                            # zipfile 라이브러리로 바로 풀경우에 한글 제목 깨짐 방지하기 위해
+                            # cp437 - euc-kr 거쳐서 제목을 바꾸어주는 과정
+                            os.rename(os.path.join(base_dir, "Download", fileName),
+                                      os.path.join(base_dir, "Download", fileName.encode('cp437').decode('euc-kr')))
+
+                # for fileName in listOfFileNames:
+                #     os.remove("Download/"+fileName.encode('cp437').decode('euc-kr'))
+
+                os.remove(temp_path)
+
+
+def raw_data_parse():
     # 재무정보 일괄 다운로드 하는 과정
 
     ####################################
     rawDataManager = RawDataManager()
-    driver = rawDataManager.get_chromedriver()
+    rawDataManager.set_chromedriver()
 
     base_url = "http://dart.fss.or.kr/dsext002/main.do"
+    base_url_opendart = "https://opendart.fss.or.kr/disclosureinfo/fnltt/dwld/main.do"
 
-    driver.get(base_url)
-
-    print(driver.page_source)
-
-    soup = bs(driver.page_source, 'html.parser')
-    soup = soup.find('table', class_="list")
-
-    print(soup)
-
-    total_list = soup.find_all("tr")
+    rawDataManager.set_base_url(base_url)
 
     # 분기별 일괄정보 zip URL 파싱해내는 작업
+    print("분기별 일괄정보 zip URL 파싱해내는 작업")
 
-    BS_list, PL_list, CF_list, CE_list = deque(), deque(), deque(), deque()
-
-    for row in total_list[1:]:
-        table_datas = row.find_all("td")
-        # print(table_datas)
-        BS = table_datas[3]     # 재무상태표 : BS  (Balance Sheet)
-        PL = table_datas[4]     # 손익계산서 : PL  (Profit & Loss)
-        CF = table_datas[5]     # 현금흐름표 : CF  (Cash Flow)
-        CE = table_datas[6]     # 자본변동표 : CE  (Changes in Equity)
-
-        print(BS.find("a")['onclick'].split('\'')[7])
-        print(PL.find("a")['onclick'].split('\'')[7])
-        print(CF.find("a")['onclick'].split('\'')[7])
-        print(CE.find("a")['onclick'].split('\'')[7])
-
-        BS_list.append(BS.find("a")['onclick'].split('\'')[7])
-        PL_list.append(PL.find("a")['onclick'].split('\'')[7])
-        CF_list.append(CF.find("a")['onclick'].split('\'')[7])
-        CE_list.append(CE.find("a")['onclick'].split('\'')[7])
-
-    print(BS_list, PL_list, CF_list, CE_list)
+    rawDataManager.set_total_list()
 
     # 일괄정보 URL 파싱한 것으로 for 돌리는 작업
+    print("일괄정보 URL 파싱한 것으로 for 돌리는 작업")
 
-    LIST = [BS_list, PL_list, CF_list, CE_list]
-    length = len(BS_list)
-
-    for x in range(4):
-        t = 1
-        for y in range(length):
-            url = LIST[x].pop()
-
-            # URL of the image to be downloaded is defined as image_url
-            r = requests.get(url)  # create HTTP response object
-
-            # send a HTTP request to the server and save
-            # the HTTP response in a response object called r
-            temp_path = os.path.join(BASE_DIR, 'Download', 'temp.zip')
-            with open(temp_path, 'wb') as f:
-                # Saving received content as a png file in
-                # binary format
-
-                # write the contents of the response (r.content)
-                # to a new file in binary mode.
-                f.write(r.content)
-
-            with zipfile.ZipFile(temp_path, 'r') as zip_ref:
-                # Get a list of all archived file names from the zip
-                listOfFileNames = zip_ref.namelist()
-                # Iterate over the file names
-                for fileName in listOfFileNames:
-                    # Check filename endswith csv
-                    if fileName.endswith('.txt'):
-
-                        # Extract a single file from zip
-                        zip_ref.extract(fileName, path="Download/")
-
-                        # zipfile 라이브러리로 바로 풀경우에 한글 제목 깨짐 방지하기 위해
-                        # cp437 - euc-kr 거쳐서 제목을 바꾸어주는 과정
-                        os.rename('Download/'+fileName,
-                                  'Download/'+fileName.encode('cp437').decode('euc-kr'))
-
-            # for fileName in listOfFileNames:
-            #     os.remove("Download/"+fileName.encode('cp437').decode('euc-kr'))
-
-            os.remove("Download/temp.zip")
+    rawDataManager.download_extract(BASE_DIR)
 
     ########################################
 
